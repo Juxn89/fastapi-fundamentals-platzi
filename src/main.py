@@ -1,12 +1,14 @@
 import zoneinfo
-from fastapi import FastAPI, HTTPException
+from sqlmodel import select
 from datetime import date, datetime
+from fastapi import FastAPI, HTTPException, status
 
-from src.models.Customer import Customer, CustomerCreate
 from src.models.Invoice import Invoice
+from db import SessionDep, create_all_table
 from src.models.Transaction import Transaction
+from src.models.Customer import Customer, CustomerCreate, CustomerUpdate
 
-app = FastAPI()
+app = FastAPI(lifespan=create_all_table)
 
 @app.get('/')
 async def root():
@@ -50,21 +52,44 @@ async def get_current_time_isocode(iso_code: str):
 
 DB_CUSTOMER: list[Customer] = []
 @app.post('/customers', response_model=Customer)
-async def create_customer(customer_data: CustomerCreate):
+async def create_customer(customer_data: CustomerCreate, session: SessionDep):
     customer = Customer.model_validate(customer_data.model_dump())
-    customer.id = len(DB_CUSTOMER)
-    DB_CUSTOMER.append(customer)
+    session.add(customer)
+    session.commit()
+    session.refresh(customer)
     return customer
 
 @app.get('/customers', response_model=list[Customer])
-async def list_customers():
-    return DB_CUSTOMER
+async def list_customers(session: SessionDep):    
+    return session.exec(select(Customer)).all()
 
 @app.get('/customers/{customer_id}', response_model=Customer)
-async def list_customers(customer_id: int):
-    if customer_id < 0 or customer_id >= len(DB_CUSTOMER):
-        raise HTTPException(status_code=404, detail="Customer not found")
-    return DB_CUSTOMER[customer_id]
+async def list_customers(customer_id: int, session: SessionDep):
+    customer_db = session.get(Customer, customer_id)
+    if not customer_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer does not exist.")
+    return customer_db
+
+@app.delete('/customers/{customer_id}')
+async def delete_customers(customer_id: int, session: SessionDep):
+    customer_db = session.get(Customer, customer_id)
+    if not customer_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer does not exist.")
+    session.delete(customer_db)
+    session.commit()
+    return { "detail" : "OK"}
+
+@app.patch('/customers/{customer_id}', response_model=Customer, status_code=status.HTTP_201_CREATED)
+async def list_customers(customer_id: int, customer_data: CustomerUpdate, session: SessionDep):
+    customer_db = session.get(Customer, customer_id)
+    if not customer_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer does not exist.")
+    customer_data_dict = customer_data.model_dump(exclude_unset=True)
+    customer_db.sqlmodel_update(customer_data_dict)
+    session.add(customer_db)
+    session.commit()
+    session.refresh(customer_db)
+    return customer_db
 
 @app.post('/transactions')
 async def create_transaction(transaction_data: Transaction):
