@@ -1,5 +1,5 @@
 from pydantic import EmailStr
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 
 class CustomerBase(SQLModel):
     name: str = Field(default=None)
@@ -15,3 +15,4 @@ class CustomerUpdate(CustomerBase):
    
 class Customer(CustomerBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    transactions: list["Transaction"] = Relationship(back_populates="customer")

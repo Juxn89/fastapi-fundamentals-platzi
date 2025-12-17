@@ -6,10 +6,11 @@ from db import create_all_table
 from src.models.Invoice import Invoice
 from src.models.Customer import Customer
 from src.models.Transaction import Transaction
-from src.app.routers import customers
+from src.app.routers import customers, transactions
 
 app = FastAPI(lifespan=create_all_table)
 app.include_router(customers.router)
+app.include_router(transactions.router)
 
 @app.get('/')
 async def root():
@@ -50,13 +51,6 @@ async def get_current_time_isocode(iso_code: str):
     except:
         return { "message": "Something was wrong. We don't recognize the ISO code or currently is not available." }
     return { iso_code: datetime.date(timezone) }
-
-DB_CUSTOMER: list[Customer] = []
-
-
-@app.post('/transactions')
-async def create_transaction(transaction_data: Transaction):
-    return transaction_data
 
 @app.post('/invoices')
 async def create_invoice(invoice_data: Invoice):

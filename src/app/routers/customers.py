@@ -1,6 +1,7 @@
 from sqlmodel import select
-from src.db import SessionDep
 from fastapi import APIRouter, status, HTTPException
+
+from src.db import SessionDep
 from src.models.Customer import Customer, CustomerCreate, CustomerUpdate
 
 router = APIRouter()
