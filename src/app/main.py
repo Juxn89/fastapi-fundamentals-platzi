@@ -4,13 +4,12 @@ from datetime import date, datetime
 
 from db import create_all_table
 from src.models.Invoice import Invoice
-from src.models.Customer import Customer
-from src.models.Transaction import Transaction
-from src.app.routers import customers, transactions
+from src.app.routers import customers, transactions, plans
 
 app = FastAPI(lifespan=create_all_table)
 app.include_router(customers.router)
 app.include_router(transactions.router)
+app.include_router(plans.router)
 
 @app.get('/')
 async def root():

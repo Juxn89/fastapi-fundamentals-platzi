@@ -1,6 +1,8 @@
 from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, Relationship
 
+from src.models.Plan import CustomerPlan
+
 class CustomerBase(SQLModel):
     name: str = Field(default=None)
     description: str | None = Field(default=None)
@@ -16,3 +18,7 @@ class CustomerUpdate(CustomerBase):
 class Customer(CustomerBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     transactions: list["Transaction"] = Relationship(back_populates="customer")
+    plans: list["Plan"] = Relationship(
+        back_populates="customers",
+        link_model=CustomerPlan
+    )
