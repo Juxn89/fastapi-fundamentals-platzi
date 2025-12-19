@@ -1,7 +1,9 @@
 import time
 import zoneinfo
+from typing import Annotated
 from datetime import date, datetime
-from fastapi import FastAPI, Request
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 
 from db import create_all_table
 from src.models.Invoice import Invoice
@@ -26,9 +28,14 @@ async def log_request_headers(request: Request, call_next) -> Request:
     response = await call_next(request)
     return response
 
+securiry = HTTPBasic()
 @app.get('/')
-async def root():
-    return { "message": "Hello world! Juan" }
+async def root(credentials: Annotated[HTTPBasicCredentials, Depends(securiry)]):
+    print(credentials)
+    if credentials.username == "" and credentials.password == "":
+    	return { "message": f"Hello world! {credentials.username}" }
+    else:
+      raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
 @app.get('/current-time')
 async def get_datetime():
